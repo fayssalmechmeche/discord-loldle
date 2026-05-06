@@ -2,6 +2,7 @@ import { dirname, importx } from "@discordx/importer";
 import { IntentsBitField, type Interaction, type Message } from "discord.js";
 import { Client } from "discordx";
 import "dotenv/config";
+import { getLatestVersion } from "./data/ddragon.js";
 
 export const bot = new Client({
   // To use only guild command
@@ -13,22 +14,19 @@ export const bot = new Client({
     IntentsBitField.Flags.GuildMembers,
     IntentsBitField.Flags.GuildMessages,
     IntentsBitField.Flags.GuildMessageReactions,
-    IntentsBitField.Flags.GuildVoiceStates,
     IntentsBitField.Flags.MessageContent,
   ],
 
   // Debug logs are disabled in silent mode
   silent: false,
-
-  // Configuration for @SimpleCommand
-  simpleCommand: {
-    prefix: "!",
-  },
 });
 
-bot.once("ready", () => {
+bot.once("ready", async () => {
   // Make sure all guilds are cached
-  // await bot.guilds.fetch();
+  await bot.guilds.fetch();
+
+  // Cache the latest version of League of Legends data
+  await getLatestVersion();
 
   // Synchronize applications commands with Discord
   void bot.initApplicationCommands();
@@ -37,19 +35,13 @@ bot.once("ready", () => {
   // This is useful when moving from guild commands to global commands
   // It must only be executed once
   //
-  //  await bot.clearApplicationCommands(
-  //    ...bot.guilds.cache.map((g) => g.id)
-  //  );
+  // await bot.clearApplicationCommands(...bot.guilds.cache.map((g) => g.id));
 
   console.log("Bot started");
 });
 
 bot.on("interactionCreate", (interaction: Interaction) => {
   bot.executeInteraction(interaction);
-});
-
-bot.on("messageCreate", (message: Message) => {
-  void bot.executeCommand(message);
 });
 
 async function run() {

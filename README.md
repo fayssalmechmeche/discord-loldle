@@ -1,99 +1,164 @@
-<div>
-  <p align="center">
-    <a href="https://discordx.js.org" target="_blank" rel="nofollow">
-      <img src="https://discordx.js.org/discordx.svg" width="546" />
-    </a>
-  </p>
-  <p align="center">
-    <a href="https://discordx.js.org/discord"
-      ><img
-        src="https://img.shields.io/discord/874802018361950248?color=5865F2&logo=discord&logoColor=white"
-        alt="Discord server"
-    /></a>
-    <a href="https://www.npmjs.com/package/discordx"
-      ><img
-        src="https://img.shields.io/npm/v/discordx.svg?maxAge=3600"
-        alt="NPM version"
-    /></a>
-    <a href="https://www.npmjs.com/package/discordx"
-      ><img
-        src="https://img.shields.io/npm/dt/discordx.svg?maxAge=3600"
-        alt="NPM downloads"
-    /></a>
-    <a href="https://github.com/discordx-ts/discordx/actions"
-      ><img
-        src="https://github.com/discordx-ts/discordx/workflows/Build/badge.svg"
-        alt="Build status"
-    /></a>
-    <a href="https://www.paypal.me/vijayxmeena"
-      ><img
-        src="https://img.shields.io/badge/donate-paypal-F96854.svg"
-        alt="paypal"
-    /></a>
-  </p>
-  <p align="center">
-    <b> Create a discord bot with TypeScript and Decorators! </b>
-  </p>
-</div>
+# 🎮 LoLdle Discord Bot
 
-# 📖 Introduction
+Bot Discord inspiré de [LoLdle](https://loldle.net), permettant de deviner un champion League of Legends à partir d'une portion de son splash art. Développé en TypeScript avec [discordx](https://discordx.js.org/).
 
-A starter template equipped with several interaction commands and one event.
+---
 
-# 🏗 Development
+## ✨ Fonctionnalités
+
+### Mode Splash Art
+- Un champion est tiré au sort chaque jour à minuit — **le même pour tous les joueurs du serveur**
+- Le joueur lance une partie via `/play` dans n'importe quel salon
+- Le bot lui envoie un **DM** avec une portion croppée aléatoire du splash art
+- Le joueur devine via `/guess` avec **autocomplete** sur les noms de champions
+- À chaque mauvaise réponse, la zone de crop **s'agrandit** (zoom out progressif depuis le même centre)
+- L'historique des tentatives s'affiche avec l'**icône du champion** en 🔴 ou 🟢
+- **3 tentatives maximum**
+- En cas d'échec, le splash art complet est révélé
+
+### Classement quotidien
+- À la fin de chaque journée, le bot poste un **récapitulatif des scores** dans un salon configuré
+- Le classement affiche chaque joueur et son nombre d'essais
+
+---
+
+## 📸 Flow du jeu
 
 ```
+[Joueur]  /play
+                → DM reçu avec crop 150x150px
+
+[Joueur]  /guess Ahri       → ❌
+                → DM édité  : 🔴 Ahri | crop 280x280px
+
+[Joueur]  /guess Lee Sin    → ❌
+                → DM édité  : 🔴 Ahri | 🔴 Lee Sin | crop 420x420px
+
+[Joueur]  /guess Jinx       → ✅
+                → DM édité  : 🔴 Ahri | 🔴 Lee Sin | 🟢 Jinx
+                → 🎉 Trouvé en 3 essais !
+
+[À minuit] → classement posté dans le salon configuré
+```
+
+---
+
+## ⚙️ Tailles de crop progressives
+
+| Tentative | Taille du crop |
+|-----------|---------------|
+| 1         | 150 x 150 px  |
+| 2         | 280 x 280 px  |
+| 3         | 420 x 420 px  |
+| Échec     | Splash complet révélé |
+
+> La zone de départ est aléatoire mais le **centre reste fixe** — l'image "zoom out" progressivement.
+
+---
+
+## 🛠️ Stack technique
+
+| Outil | Usage |
+|-------|-------|
+| [discordx](https://discordx.js.org/) | Framework Discord avec décorateurs TypeScript |
+| [discord.js](https://discord.js.org/) | Base du bot |
+| [sharp](https://sharp.pixelplumbing.com/) | Crop des splash arts |
+| [Data Dragon](https://developer.riotgames.com/docs/lol) | Assets champions (images, sorts) — gratuit, sans clé |
+| dotenv | Variables d'environnement |
+| TypeScript | Langage principal |
+
+---
+
+## 📁 Structure du projet
+
+```
+src/
+├── main.ts                    # Entry point — boot du bot
+├── commands/
+│   ├── SetupCommand.ts        # /setup — configure le salon des résultats
+│   ├── PlayCommand.ts         # /play  — lance une partie en DM
+│   └── GuessCommand.ts        # /guess — soumet une réponse (avec autocomplete)
+├── game/
+│   ├── SessionManager.ts      # Gestion des parties en cours par utilisateur
+│   └── SplashGame.ts          # Logique du crop progressif avec sharp
+├── data/
+│   ├── ddragon.ts             # Fetch & cache Data Dragon (version, champions, assets)
+│   └── quotes.json            # Citations manuelles par champion (modes futurs)
+└── utils/
+    └── embed.ts               # Builders d'embeds Discord réutilisables
+```
+
+---
+
+## 🚀 Installation
+
+### Prérequis
+- Node.js >= 20
+- TypeScript >= 5
+- Un bot Discord créé sur le [Developer Portal](https://discord.com/developers/applications)
+
+### Setup
+
+```bash
+# Cloner le projet
+git clone https://github.com/ton-user/discord-loldle.git
+cd discord-loldle
+
+# Installer les dépendances
 npm install
+
+# Configurer les variables d'environnement
+cp .env.example .env
+```
+
+Remplis le `.env` :
+
+```env
+BOT_TOKEN=ton_token_ici
+CLIENT_ID=ton_client_id_ici
+GUILD_ID=ton_guild_id_ici   # optionnel, pour le serveur de test
+```
+
+```bash
+# Lancer en développement
 npm run dev
-```
 
-If you want to use [Nodemon](https://nodemon.io/) to auto-reload while in development:
-
-```
-npm run watch
-```
-
-# 💻 Production
-
-```
-npm install --production
+# Build pour la production
 npm run build
 npm run start
 ```
 
-# 🐋 Docker
+---
 
-To start your application:
+## ⚙️ Configuration du bot sur ton serveur
 
-```
-docker-compose up -d
-```
-
-To shut down your application:
+Une fois le bot en ligne, l'admin configure le salon des résultats :
 
 ```
-docker-compose down
+/setup #loldle-résultats
 ```
 
-To view your application's logs:
+Le bot mémorise ce salon et y postera le classement chaque soir.
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Mode Splash Art
+- [ ] Mode Citation — deviner le champion depuis une de ses phrases
+- [ ] Mode Compétence — deviner le champion depuis l'icône d'un de ses sorts
+- [ ] Statistiques personnelles (streak, win rate)
+- [ ] Mode multijoueur (duel)
+
+---
+
+## 📜 Données & Assets
+
+Les images et données des champions sont récupérées via **Data Dragon**, l'API statique officielle de Riot Games — gratuite et sans clé API.
 
 ```
-docker-compose logs
+https://ddragon.leagueoflegends.com/cdn/{version}/data/fr_FR/champion.json
 ```
 
-For the full command list please view the [Docker Documentation](https://docs.docker.com/engine/reference/commandline/cli/).
-
-# 📜 Documentation
-
-- [discordx.js.org](https://discordx.js.org)
-- [Tutorials (dev.to)](https://dev.to/vijayymmeena/series/14317)
-
-# ☎️ Need help?
-
-- [Check frequently asked questions](https://discordx.js.org/docs/faq)
-- [Check examples](https://github.com/discordx-ts/discordx/tree/main/packages/discordx/examples)
-- Ask in the community [Discord server](https://discordx.js.org/discord)
-
-# 💖 Thank you
-
-You can support [discordx](https://www.npmjs.com/package/discordx) by giving it a [GitHub](https://github.com/discordx-ts/discordx) star.
+> Ce projet est un projet de fan non affilié à Riot Games.
+> League of Legends et tous les assets associés sont la propriété de Riot Games.
