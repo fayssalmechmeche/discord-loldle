@@ -45,7 +45,7 @@ export const SessionManager = {
       cropLeft,
       cropTop,
       currentCropSize: initialCropSize,
-      cropSizeProgression: [150, 280, 420, 600, 800, 1000],
+      cropSizeProgression: [150, 280, 420, 600, 800, 1000, 1215],
     };
     sessions.set(userId, session);
     return session;

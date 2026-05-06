@@ -140,32 +140,28 @@ export class GuessCommand {
         // Garder les mêmes coordonnées de départ, juste augmenter la taille
         let newLeft = session.cropLeft;
         let newTop = session.cropTop;
-        let finalCropSize = newCropSize;
 
         // S'assurer que le crop ne dépasse pas les limites de l'image
-        if (newLeft + finalCropSize > imgWidth) {
-          newLeft = Math.max(0, imgWidth - finalCropSize);
+        if (newLeft + newCropSize > imgWidth) {
+          newLeft = Math.max(0, imgWidth - newCropSize);
         }
-        if (newTop + finalCropSize > imgHeight) {
-          newTop = Math.max(0, imgHeight - finalCropSize);
+        if (newTop + newCropSize > imgHeight) {
+          newTop = Math.max(0, imgHeight - newCropSize);
         }
 
-        // Limiter la taille du crop aux dimensions réelles restantes
-        finalCropSize = Math.min(
-          finalCropSize,
-          imgWidth - newLeft,
-          imgHeight - newTop,
-        );
+        // Limiter les dimensions indépendamment pour permettre des rectangles
+        const finalCropWidth = Math.min(newCropSize, imgWidth - newLeft);
+        const finalCropHeight = Math.min(newCropSize, imgHeight - newTop);
 
-        // Re-cropper l'image avec la nouvelle taille
+        // Re-cropper l'image avec les nouvelles dimensions
         const newCroppedBuffer = await sharp(session.imageBuffer, {
           failOnError: false,
         })
           .extract({
             left: newLeft,
             top: newTop,
-            width: finalCropSize,
-            height: finalCropSize,
+            width: finalCropWidth,
+            height: finalCropHeight,
           })
           .png()
           .toBuffer();
@@ -178,7 +174,7 @@ export class GuessCommand {
         const dmChannel =
           interaction.user.dmChannel || (await interaction.user.createDM());
         await dmChannel.send({
-          content: `❌ **Mauvais !** (Tentative ${session.attempts.length})\n\n**Historique:**\n${historyLines}\n\n🔍 Voici un crop plus grand...\nCroppe: ${finalCropSize}x${finalCropSize}px`,
+          content: `❌ **Mauvais !** (Tentative ${session.attempts.length})\n\n**Historique:**\n${historyLines}\n\n🔍 Voici un crop plus grand...\nCroppe: ${finalCropWidth}x${finalCropHeight}px`,
           files: [
             {
               attachment: newCroppedBuffer,
