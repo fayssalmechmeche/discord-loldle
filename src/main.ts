@@ -3,6 +3,7 @@ import { IntentsBitField, type Interaction, type Message } from "discord.js";
 import { Client } from "discordx";
 import "dotenv/config";
 import { getLatestVersion } from "./data/ddragon.js";
+import { SessionManager } from "./game/SessionManager.js";
 
 export const bot = new Client({
   // To use only guild command
@@ -24,6 +25,9 @@ export const bot = new Client({
 bot.once("ready", async () => {
   // Make sure all guilds are cached
   await bot.guilds.fetch();
+
+  // Initialiser le SessionManager avec les données persistantes
+  SessionManager.init();
 
   // Cache the latest version of League of Legends data
   await getLatestVersion();

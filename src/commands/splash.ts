@@ -19,14 +19,46 @@ export class SplashCommand {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
+      // Récupérer l'ID du serveur (guild)
+      const guildId = interaction.guildId || interaction.guild?.id;
+      if (!guildId) {
+        await interaction.editReply({
+          content: "❌ Cette commande ne fonctionne que dans un serveur !",
+        });
+        return;
+      }
+
+      // Vérifier si l'utilisateur a déjà trouvé le champion du jour (sur n'importe quel serveur)
+      if (
+        SessionManager.completedTodaysChallengeAnywhere(interaction.user.id)
+      ) {
+        await interaction.editReply({
+          content:
+            "✅ Tu as déjà trouvé le champion du jour ! Reviens demain pour un nouveau défi ! 🌟",
+        });
+        return;
+      }
+
       // 1. Récupérer la liste de tous les champions
       const champions = await getChampionList();
       const championIds = Object.keys(champions);
 
-      // 2. Tirer un champion au hasard
-      const randomChampionId =
-        championIds[Math.floor(Math.random() * championIds.length)];
-      const champion = await getChampionDetail(randomChampionId);
+      // 2. Obtenir le champion du jour (ou en tirer un nouveau)
+      let dailyChampion = SessionManager.getDailyChampion();
+      let randomChampionId: string;
+      let champion: any;
+
+      if (!dailyChampion) {
+        // Tirer un champion au hasard et le stocker comme champion du jour
+        randomChampionId =
+          championIds[Math.floor(Math.random() * championIds.length)];
+        champion = await getChampionDetail(randomChampionId);
+        SessionManager.setDailyChampion(randomChampionId, champion.name);
+      } else {
+        // Utiliser le champion du jour
+        randomChampionId = dailyChampion.id;
+        champion = await getChampionDetail(randomChampionId);
+      }
 
       // 3. Récupérer tous les numéros de skins disponibles
       const skinNums = champion.skins.map((skin: any) => skin.num);

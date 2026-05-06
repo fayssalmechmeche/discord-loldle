@@ -49,6 +49,15 @@ export class GuessCommand {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
+      // Vérifier qu'on est en DM
+      const isDM = !interaction.guildId && !interaction.guild;
+      if (!isDM) {
+        await interaction.editReply({
+          content: "❌ Cette commande doit se faire en DM avec le bot !",
+        });
+        return;
+      }
+
       await initChampions();
 
       // Vérifier que l'utilisateur a une partie en cours
@@ -104,6 +113,17 @@ export class GuessCommand {
         await interaction.editReply({
           content: `${message}\n\n**Historique:**\n${historyLines}`,
         });
+
+        // Enregistrer le résultat du jour pour TOUS les serveurs
+        const allGuildIds = Array.from(interaction.client.guilds.cache.keys());
+        for (const gId of allGuildIds) {
+          SessionManager.recordDailyResult(
+            gId,
+            interaction.user.id,
+            interaction.user.username,
+            attempts,
+          );
+        }
 
         // Envoyer l'image complète en DM
         const dmChannel =
