@@ -38,6 +38,8 @@ interface DailyChampion {
   id: string;
   name: string;
   date: string; // Format YYYY-MM-DD pour vérifier si c'est le même jour
+  guildId?: string; // ID du serveur où /splash a été exécuté
+  channelId?: string; // ID du canal où /splash a été exécuté
 }
 
 let dailyChampion: DailyChampion | null = null;
@@ -46,6 +48,29 @@ let dailyChampion: DailyChampion | null = null;
 const dailyResults = new Map<string, Map<string, DailyChallengeResult>>();
 let dailyResultsDate: string = "";
 
+// Historique long terme (date -> {champion, results})
+interface DayHistory {
+  champion: DailyChampion;
+  results: { [guildId: string]: { [userId: string]: DailyChallengeResult } };
+}
+
+interface StoredDayHistory {
+  champion: DailyChampion;
+  results: {
+    [guildId: string]: {
+      [userId: string]: {
+        guildId: string;
+        userId: string;
+        username: string;
+        attemptCount: number;
+        completedAt: string;
+      };
+    };
+  };
+}
+
+let history: Map<string, DayHistory> = new Map();
+
 function getTodayDate(): string {
   const now = new Date();
   return now.toISOString().split("T")[0];
@@ -53,6 +78,30 @@ function getTodayDate(): string {
 
 function loadFromStorage(): void {
   const data = Storage.load();
+
+  // Charger l'historique
+  if (data.history) {
+    for (const [date, dayData] of Object.entries(data.history)) {
+      const storedData = dayData as StoredDayHistory;
+      // Convertir les dates de string à Date
+      const results: {
+        [guildId: string]: { [userId: string]: DailyChallengeResult };
+      } = {};
+      for (const [guildId, users] of Object.entries(storedData.results)) {
+        results[guildId] = {};
+        for (const [userId, result] of Object.entries(users)) {
+          results[guildId][userId] = {
+            ...result,
+            completedAt: new Date(result.completedAt),
+          };
+        }
+      }
+      history.set(date, {
+        champion: storedData.champion,
+        results,
+      });
+    }
+  }
 
   // Charger le champion du jour
   if (data.dailyChampion && data.dailyChampion.date === getTodayDate()) {
@@ -88,16 +137,54 @@ function saveToStorage(): void {
     }
   }
 
+  // Préparer l'historique pour le stockage (convertir les Dates en strings)
+  const historyData: { [date: string]: any } = {};
+  for (const [date, dayData] of history.entries()) {
+    const resultsForStorage: { [guildId: string]: any } = {};
+    for (const [guildId, users] of Object.entries(dayData.results)) {
+      resultsForStorage[guildId] = {};
+      for (const [userId, result] of Object.entries(users)) {
+        resultsForStorage[guildId][userId] = {
+          ...result,
+          completedAt: result.completedAt.toISOString(),
+        };
+      }
+    }
+    historyData[date] = {
+      champion: dayData.champion,
+      results: resultsForStorage,
+    };
+  }
+
   Storage.save({
     dailyChampion,
     dailyResults: resultsData,
     dailyResultsDate,
+    history: historyData,
   });
 }
 
 function resetDailyIfNeeded(): void {
   const today = getTodayDate();
   if (dailyResultsDate !== today) {
+    // Archiver les résultats d'hier dans l'historique si le champion d'hier existe
+    if (dailyChampion && dailyChampion.date !== today) {
+      const resultsForHistory: {
+        [guildId: string]: { [userId: string]: DailyChallengeResult };
+      } = {};
+      for (const [guildId, users] of dailyResults.entries()) {
+        resultsForHistory[guildId] = {};
+        for (const [userId, result] of users.entries()) {
+          resultsForHistory[guildId][userId] = result;
+        }
+      }
+      history.set(dailyChampion.date, {
+        champion: dailyChampion,
+        results: resultsForHistory,
+      });
+    }
+
+    // Réinitialiser pour le nouveau jour
     dailyResults.clear();
     dailyChampion = null;
     dailyResultsDate = today;
@@ -169,12 +256,19 @@ export const SessionManager = {
   },
 
   // ===== GESTION DU CHAMPION DU JOUR =====
-  setDailyChampion(championId: string, championName: string): void {
+  setDailyChampion(
+    championId: string,
+    championName: string,
+    guildId?: string,
+    channelId?: string,
+  ): void {
     resetDailyIfNeeded();
     dailyChampion = {
       id: championId,
       name: championName,
       date: getTodayDate(),
+      guildId,
+      channelId,
     };
     saveToStorage();
   },
@@ -241,5 +335,36 @@ export const SessionManager = {
   init(): void {
     loadFromStorage();
     console.log("✅ SessionManager initialisé avec les données persistantes");
+  },
+
+  // ===== HISTORIQUE =====
+  getHistory(
+    days: number = 7,
+  ): Array<{ date: string; champion: DailyChampion; resultCount: number }> {
+    const result: Array<{
+      date: string;
+      champion: DailyChampion;
+      resultCount: number;
+    }> = [];
+    const sortedDates = Array.from(history.keys()).sort().reverse();
+
+    for (const date of sortedDates.slice(0, days)) {
+      const dayData = history.get(date)!;
+      let resultCount = 0;
+      for (const guildResults of Object.values(dayData.results)) {
+        resultCount += Object.keys(guildResults).length;
+      }
+      result.push({
+        date,
+        champion: dayData.champion,
+        resultCount,
+      });
+    }
+
+    return result;
+  },
+
+  getHistoryForDate(date: string): DayHistory | null {
+    return history.get(date) || null;
   },
 };

@@ -19,6 +19,26 @@ interface StorageData {
     };
   };
   dailyResultsDate: string;
+  history: {
+    [date: string]: {
+      champion: {
+        id: string;
+        name: string;
+        date: string;
+      };
+      results: {
+        [guildId: string]: {
+          [userId: string]: {
+            guildId: string;
+            userId: string;
+            username: string;
+            attemptCount: number;
+            completedAt: string;
+          };
+        };
+      };
+    };
+  };
 }
 
 const DATA_DIR = join(process.cwd(), "data");
@@ -52,6 +72,7 @@ export const Storage = {
       dailyChampion: null,
       dailyResults: {},
       dailyResultsDate: "",
+      history: {},
     };
   },
 

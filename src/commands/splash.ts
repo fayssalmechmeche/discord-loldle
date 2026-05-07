@@ -53,7 +53,12 @@ export class SplashCommand {
         randomChampionId =
           championIds[Math.floor(Math.random() * championIds.length)];
         champion = await getChampionDetail(randomChampionId);
-        SessionManager.setDailyChampion(randomChampionId, champion.name);
+        SessionManager.setDailyChampion(
+          randomChampionId,
+          champion.name,
+          guildId,
+          interaction.channelId,
+        );
       } else {
         // Utiliser le champion du jour
         randomChampionId = dailyChampion.id;

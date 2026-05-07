@@ -64,6 +64,7 @@ export class ResultsCommand {
 
       await interaction.reply({
         embeds: [embed],
+        flags: 64, // Ephemeral: visible uniquement pour l'utilisateur
       });
     } catch (error) {
       console.error("Erreur dans /results:", error);

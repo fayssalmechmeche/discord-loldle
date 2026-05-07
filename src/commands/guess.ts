@@ -118,11 +118,33 @@ export class GuessCommand {
         const allGuildIds = Array.from(interaction.client.guilds.cache.keys());
         for (const gId of allGuildIds) {
           SessionManager.recordDailyResult(
-            gId,
+            gId as string,
             interaction.user.id,
             interaction.user.username,
             attempts,
           );
+        }
+
+        // Annoncer la trouvaille dans le canal où /splash a été exécuté
+        const dailyChampion = SessionManager.getDailyChampion();
+        if (dailyChampion && dailyChampion.channelId && dailyChampion.guildId) {
+          try {
+            const guild = interaction.client.guilds.cache.get(
+              dailyChampion.guildId,
+            );
+            if (guild) {
+              const channel = guild.channels.cache.get(dailyChampion.channelId);
+              if (channel && channel.isTextBased()) {
+                const attemptsText =
+                  attempts === 1 ? "1 essai" : `${attempts} essais`;
+                await channel.send(
+                  `🎉 **${interaction.user.username}** a trouvé le champion en ${attemptsText} ! Bravo ! 🎊`,
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Erreur lors de l'annonce dans le canal:", error);
+          }
         }
 
         // Envoyer l'image complète en DM
