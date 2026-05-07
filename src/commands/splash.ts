@@ -15,18 +15,41 @@ export class SplashCommand {
     description: "Reçois une image croppée d'un champion LoL en DM 🎨",
   })
   async splash(interaction: any) {
-    // Acknowledge la commande
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
     try {
-      // Récupérer l'ID du serveur (guild)
+      // Vérifier qu'on est sur un serveur
       const guildId = interaction.guildId || interaction.guild?.id;
       if (!guildId) {
-        await interaction.editReply({
+        await interaction.reply({
           content: "❌ Cette commande ne fonctionne que dans un serveur !",
+          ephemeral: true,
         });
         return;
       }
+
+      // Vérifier que le setup a été fait
+      const configuredChannel = SessionManager.getGuildSetupChannel(guildId);
+      if (!configuredChannel) {
+        await interaction.reply({
+          content:
+            "❌ Aucun salon configuré ! L'admin doit d'abord faire `/setup`",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      // Vérifier qu'on est dans le bon salon
+      if (interaction.channelId !== configuredChannel) {
+        const channel =
+          await interaction.guild?.channels.fetch(configuredChannel);
+        await interaction.reply({
+          content: `❌ Cette commande ne fonctionne que dans ${channel?.toString()} !`,
+          ephemeral: true,
+        });
+        return;
+      }
+
+      // Acknowledge la commande
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       // Vérifier si l'utilisateur a déjà trouvé le champion du jour (sur n'importe quel serveur)
       if (

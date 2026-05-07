@@ -48,6 +48,9 @@ let dailyChampion: DailyChampion | null = null;
 const dailyResults = new Map<string, Map<string, DailyChallengeResult>>();
 let dailyResultsDate: string = "";
 
+// Configuration par serveur (guildId -> channelId)
+const guildSetup = new Map<string, string>();
+
 // Historique long terme (date -> {champion, results})
 interface DayHistory {
   champion: DailyChampion;
@@ -366,5 +369,14 @@ export const SessionManager = {
 
   getHistoryForDate(date: string): DayHistory | null {
     return history.get(date) || null;
+  },
+
+  // ===== GESTION DE LA CONFIGURATION PAR SERVEUR =====
+  setGuildSetup(guildId: string, channelId: string): void {
+    guildSetup.set(guildId, channelId);
+  },
+
+  getGuildSetupChannel(guildId: string): string | null {
+    return guildSetup.get(guildId) || null;
   },
 };

@@ -4,6 +4,8 @@ import { Client } from "discordx";
 import "dotenv/config";
 import { getLatestVersion } from "./data/ddragon.js";
 import { SessionManager } from "./game/SessionManager.js";
+import { initScheduler } from "./game/scheduler.js";
+import { SetupHandler } from "./commands/setup.js";
 
 export const bot = new Client({
   // To use only guild command
@@ -29,6 +31,9 @@ bot.once("ready", async () => {
   // Initialiser le SessionManager avec les données persistantes
   SessionManager.init();
 
+  // Initialiser le scheduler pour l'envoi automatique des résultats à 23H59
+  initScheduler(bot);
+
   // Cache the latest version of League of Legends data
   await getLatestVersion();
 
@@ -44,7 +49,16 @@ bot.once("ready", async () => {
   console.log("Bot started");
 });
 
-bot.on("interactionCreate", (interaction: Interaction) => {
+bot.on("interactionCreate", async (interaction: Interaction) => {
+  // Gérer les menus de sélection de salon
+  if (interaction.isChannelSelectMenu()) {
+    if (interaction.customId === "loldle_channel_select") {
+      await SetupHandler.handleChannelSelect(interaction);
+      return;
+    }
+  }
+
+  // Exécuter les autres interactions (commandes, boutons, etc.)
   bot.executeInteraction(interaction);
 });
 
